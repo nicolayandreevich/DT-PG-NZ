@@ -219,7 +219,7 @@ metrics_dic.update({
 df = df.drop(columns=['total_spend_usd', 'total_buying_households'])
 del totals
 
-# %% prepare sav file
+# %% prepare sav file # SavReaderWriter
 varNames = [i.lower().encode() for i in df.columns]        
 varTypes = dict.fromkeys(varNames, 0)
 formats = {c.encode(): b'F8.5' for c in metrics_dic.keys()}
