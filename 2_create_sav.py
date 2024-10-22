@@ -43,26 +43,7 @@ cat_new_codes = {
 lbl_dic['category'] = dict(zip(product_order['category_code'], product_order['Category Name']))
 lbl_dic['level_0'] = lbl_dic['category']
 
-lbl_dic['features'] = {
-    0: 'category',
-    1: 'producer',
-    2: 'brand',
-    3: 'sub-brand',
-    4: 'brand sub-cat',
-    5: 'sub-category',
-    6: 'sub-brand sub-cat',
-    7: 'segment type',
-    8: 'price segment',
-    9: 'sum subcategory',
-    10: 'line',
-    11: 'variant',
-    12: 'variant line',
-    13: 'p&g excl king',
-    14: 'concentration',
-    15: 'type',
-    16: 'sub-line',
-    17: 'other'
-}
+lbl_dic['features'] = dict(zip(product_order['feature_code'], product_order['feature']))
 
 lbl_dic['cat_segment'] = dict(zip(segment_order['segment_code'], segment_order['Segment']))
 
@@ -91,7 +72,8 @@ print(df['cat_segment'].isna().sum())
 df['category'] = df['category'].map(cat_new_codes)
 print(df['category'].isna().sum())
 
-lbl_dic['product_hier'] = dict(zip(df['products'], df['product_hier']))
+# lbl_dic['product_hier'] = dict(zip(df['products'], df['product_hier']))
+lbl_dic['product_hier'] = dict(zip(product_order['product_code'], product_order['product_hier']))
 df['product_hier'] = df['products']
 
 df['socdem_gr'] = df['socdem_gr_code'].map(demo_new_codes)
@@ -100,7 +82,8 @@ lbl_dic['socdem_gr'] = {k:v for k, v in lbl_dic['demo_groups'].items() if k in d
 
 df['demo_groups'] = df['Buyer Group ID'].map(demo_new_codes)
 print(df['demo_groups'].isna().sum())
-lbl_dic['demo_hier'] = dict(zip(df['demo_groups'], df['demo_hier']))
+# lbl_dic['demo_hier'] = dict(zip(df['demo_groups'], df['demo_hier']))
+lbl_dic['demo_hier'] = dict(zip(demo_order['demo_code'], demo_order['demo_hier']))
 df['demo_hier'] = df['demo_groups']
 
 df = df.drop(columns=['socdem_gr_code', 'category_code'])
@@ -181,19 +164,25 @@ metrics_dic = {
 df.columns = [k.lower().replace(' ', '_').replace('+', '_') for k in df.columns]
 
 # %% encode periods
+period_dic = pd.read_excel('periods.xlsx', sheet_name=None)
+
 df['year'] = df['year'].astype(int)
-lbl_dic['year'] = {k: str(k) for k in df['year'].unique()}
-lbl_dic['time_period_type'] = {
-    1: '3MMT/ 12we', 2:'MAT/ 52 we', 3: '2MAT/ 104 we', 4: 'Monthly'
-}
+# lbl_dic['year'] = {k: str(k) for k in df['year'].unique()}
+lbl_dic['year'] = dict(zip(period_dic['year']['code'], period_dic['year']['label']))
+# lbl_dic['time_period_type'] = {1: '3MMT/ 12we', 2:'MAT/ 52 we', 3: '2MAT/ 104 we', 4: 'Monthly'}
+lbl_dic['time_period_type'] = dict(zip(
+    period_dic['time_period_type']['code'], 
+    period_dic['time_period_type']['label']))
 df['time_period_type'] = df['time_period_type'].map(dic_inv(lbl_dic['time_period_type']))
 print(df['time_period_type'].isna().sum())
 
-lbl_dic['period_lbl'] = {k: v for k, v in enumerate(sorted(df['period_lbl'].unique().tolist()), 1)}
+# lbl_dic['period_lbl'] = {k: v for k, v in enumerate(sorted(df['period_lbl'].unique().tolist()), 1)}
+lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['code'], period_dic['period_lbl']['label_num']))
 df['period_lbl'] = df['period_lbl'].map(dic_inv(lbl_dic['period_lbl']))
-for k, v in lbl_dic['period_lbl'].items():
-    spl =  v.split(' ')
-    lbl_dic['period_lbl'][k] = spl[0] + ' ' + spl[3] + ' ' + spl[1]
+# for k, v in lbl_dic['period_lbl'].items():
+#     spl =  v.split(' ')
+#     lbl_dic['period_lbl'][k] = spl[0] + ' ' + spl[3] + ' ' + spl[1]
+lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['code'], period_dic['period_lbl']['label']))
 
 # %% value / buyers shares for socdem
 cols = ['product_lvls', 'category',
