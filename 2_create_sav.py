@@ -13,7 +13,7 @@ files = [
     'PG_Flatfiles_Laundry_Detergents',
 ]
 
-# %% load data
+# %% load old format data
 dfs = []
 for f in tqdm(files):
     # df_tmp = pd.read_csv(f'exports/{f}.zip', engine='pyarrow')
@@ -24,9 +24,9 @@ df = pd.concat(dfs)
 del df_tmp, dfs
 
 # %% add labels
-product_order = pd.read_excel('feature_groups.xlsx')
-demo_order = pd.read_excel('demo_order.xlsx')
-segment_order = pd.read_excel('segments_order.xlsx')
+product_order = pd.read_excel('codes/feature_groups.xlsx')
+demo_order = pd.read_excel('codes/demo_order.xlsx')
+segment_order = pd.read_excel('codes/segments_order.xlsx')
 
 def dic_inv(dic):
     return {v: k for k, v in dic.items()}
@@ -63,25 +63,25 @@ lbl_dic['demo_lvls'] = {k: str(k) for k in df['demo_lvls'].unique()}
 
 # products
 df['products'] = df['Vendor Product ID'].map(product_new_codes)
-print(df['products'].isna().sum())
+print('products w/o label: ', df['products'].isna().sum())
 df['features'] = df['feature'].map(dic_inv(lbl_dic['features']))
-print(df['features'].isna().sum())
+print('features w/o label: ',df['features'].isna().sum())
 df['cat_segment'] = df['Segment'].map(dic_inv(lbl_dic['cat_segment']))
-print(df['cat_segment'].isna().sum())
+print('segments w/o label: ',df['cat_segment'].isna().sum())
 
 df['category'] = df['category'].map(cat_new_codes)
-print(df['category'].isna().sum())
+print('categories w/o label: ',df['category'].isna().sum())
 
 # lbl_dic['product_hier'] = dict(zip(df['products'], df['product_hier']))
 lbl_dic['product_hier'] = dict(zip(product_order['product_code'], product_order['product_hier']))
 df['product_hier'] = df['products']
 
 df['socdem_gr'] = df['socdem_gr_code'].map(demo_new_codes)
-print(df['socdem_gr'].isna().sum())
+print('socdem groups w/o label: ',df['socdem_gr'].isna().sum())
 lbl_dic['socdem_gr'] = {k:v for k, v in lbl_dic['demo_groups'].items() if k in df['socdem_gr'].unique()}
 
 df['demo_groups'] = df['Buyer Group ID'].map(demo_new_codes)
-print(df['demo_groups'].isna().sum())
+print('demo groups w/o label: ',df['demo_groups'].isna().sum())
 # lbl_dic['demo_hier'] = dict(zip(df['demo_groups'], df['demo_hier']))
 lbl_dic['demo_hier'] = dict(zip(demo_order['demo_code'], demo_order['demo_hier']))
 df['demo_hier'] = df['demo_groups']
@@ -164,7 +164,7 @@ metrics_dic = {
 df.columns = [k.lower().replace(' ', '_').replace('+', '_') for k in df.columns]
 
 # %% encode periods
-period_dic = pd.read_excel('periods.xlsx', sheet_name=None)
+period_dic = pd.read_excel('codes/periods.xlsx', sheet_name=None)
 
 df['year'] = df['year'].astype(int)
 # lbl_dic['year'] = {k: str(k) for k in df['year'].unique()}
@@ -174,7 +174,7 @@ lbl_dic['time_period_type'] = dict(zip(
     period_dic['time_period_type']['code'], 
     period_dic['time_period_type']['label']))
 df['time_period_type'] = df['time_period_type'].map(dic_inv(lbl_dic['time_period_type']))
-print(df['time_period_type'].isna().sum())
+print('period types w/o label: ', df['time_period_type'].isna().sum())
 
 # lbl_dic['period_lbl'] = {k: v for k, v in enumerate(sorted(df['period_lbl'].unique().tolist()), 1)}
 lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['code'], period_dic['period_lbl']['label_num']))
@@ -183,6 +183,10 @@ df['period_lbl'] = df['period_lbl'].map(dic_inv(lbl_dic['period_lbl']))
 #     spl =  v.split(' ')
 #     lbl_dic['period_lbl'][k] = spl[0] + ' ' + spl[3] + ' ' + spl[1]
 lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['code'], period_dic['period_lbl']['label']))
+
+# %% add new format data
+
+# TODO
 
 # %% value / buyers shares for socdem
 cols = ['product_lvls', 'category',

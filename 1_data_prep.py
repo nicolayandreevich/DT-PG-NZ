@@ -86,7 +86,7 @@ for name in files:
         )
     
     # %% read product order
-    feature_groups = pl.read_excel('feature_groups.xlsx').to_dict()
+    feature_groups = pl.read_excel('codes/feature_groups.xlsx').to_dict()
     product_order = dict(zip(feature_groups['Vendor Product ID'], feature_groups['product_code']))
     product_labels = dict(zip(feature_groups['Vendor Product ID'], feature_groups['full_label']))
     
@@ -249,7 +249,7 @@ for name in files:
     ).unique().write_excel(f'cat_trees/{name}_tree.xlsx', dtype_formats={pl.Int64: '0'})
     
     # %% read feature types
-    feature_groups = pl.read_excel('feature_groups.xlsx')\
+    feature_groups = pl.read_excel('codes/feature_groups.xlsx')\
         .filter(pl.col('Vendor Product ID').is_in(product_feats.keys())).to_dict()
     feature_groups = dict(zip(feature_groups['Vendor Product ID'], feature_groups['feature']))
     
@@ -297,7 +297,7 @@ for name in files:
     
     
     # %% read demo order
-    demo_order = pl.read_excel('demo_order.xlsx').to_dict()
+    demo_order = pl.read_excel('codes/demo_order.xlsx').to_dict()
     demo_order = dict(zip(demo_order['Buyer Group ID'], demo_order['demo_code']))
     
     # df['Buyer Group ID', 'Buyer Group Name', 'Buyer Group Parent ID'].unique().write_excel('check.xlsx')
