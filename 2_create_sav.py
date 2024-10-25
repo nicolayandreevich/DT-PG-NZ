@@ -168,21 +168,21 @@ period_dic = pd.read_excel('codes/periods.xlsx', sheet_name=None)
 
 df['year'] = df['year'].astype(int)
 # lbl_dic['year'] = {k: str(k) for k in df['year'].unique()}
-lbl_dic['year'] = dict(zip(period_dic['year']['code'], period_dic['year']['label']))
+lbl_dic['year'] = dict(zip(period_dic['year']['year_code'], period_dic['year_code']['label']))
 # lbl_dic['time_period_type'] = {1: '3MMT/ 12we', 2:'MAT/ 52 we', 3: '2MAT/ 104 we', 4: 'Monthly'}
 lbl_dic['time_period_type'] = dict(zip(
-    period_dic['time_period_type']['code'], 
+    period_dic['time_period_type']['time_period_code '], 
     period_dic['time_period_type']['label']))
 df['time_period_type'] = df['time_period_type'].map(dic_inv(lbl_dic['time_period_type']))
 print('period types w/o label: ', df['time_period_type'].isna().sum())
 
 # lbl_dic['period_lbl'] = {k: v for k, v in enumerate(sorted(df['period_lbl'].unique().tolist()), 1)}
-lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['code'], period_dic['period_lbl']['label_num']))
+lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_code'], period_dic['period_lbl']['label_num']))
 df['period_lbl'] = df['period_lbl'].map(dic_inv(lbl_dic['period_lbl']))
 # for k, v in lbl_dic['period_lbl'].items():
 #     spl =  v.split(' ')
 #     lbl_dic['period_lbl'][k] = spl[0] + ' ' + spl[3] + ' ' + spl[1]
-lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['code'], period_dic['period_lbl']['label']))
+lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_code'], period_dic['period_lbl']['label']))
 
 # %% add new format data
 
