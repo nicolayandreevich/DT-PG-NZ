@@ -9,9 +9,9 @@ files = [
     'PG_Flatfiles_BRMALE',
     'PG_Flatfiles_Shampoo',
     'PG_Flatfiles_Feminine_Care',
-    'PG_Flatfiles_Hair_Conditioners',
-    'PG_Flatfiles_Laundry_Detergents',
-]
+    'PG_Flatfiles_Hair_Conditioners']
+    #'PG_Flatfiles_Laundry_Detergents',
+
 
 # %% load old format data
 dfs = []
@@ -168,21 +168,21 @@ period_dic = pd.read_excel('codes/periods.xlsx', sheet_name=None)
 
 df['year'] = df['year'].astype(int)
 # lbl_dic['year'] = {k: str(k) for k in df['year'].unique()}
-lbl_dic['year'] = dict(zip(period_dic['year']['year_code'], period_dic['year_code']['label']))
+lbl_dic['year'] = dict(zip(period_dic['year']['year'], period_dic['year']['year_code']))
 # lbl_dic['time_period_type'] = {1: '3MMT/ 12we', 2:'MAT/ 52 we', 3: '2MAT/ 104 we', 4: 'Monthly'}
 lbl_dic['time_period_type'] = dict(zip(
-    period_dic['time_period_type']['time_period_code '], 
-    period_dic['time_period_type']['label']))
+    period_dic['time_period_type']['time_period_code'], 
+    period_dic['time_period_type']['time_period_type']))
 df['time_period_type'] = df['time_period_type'].map(dic_inv(lbl_dic['time_period_type']))
 print('period types w/o label: ', df['time_period_type'].isna().sum())
 
 # lbl_dic['period_lbl'] = {k: v for k, v in enumerate(sorted(df['period_lbl'].unique().tolist()), 1)}
-lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_code'], period_dic['period_lbl']['label_num']))
+lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_lbl'], period_dic['period_lbl']['label_num']))
 df['period_lbl'] = df['period_lbl'].map(dic_inv(lbl_dic['period_lbl']))
 # for k, v in lbl_dic['period_lbl'].items():
 #     spl =  v.split(' ')
 #     lbl_dic['period_lbl'][k] = spl[0] + ' ' + spl[3] + ' ' + spl[1]
-lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_code'], period_dic['period_lbl']['label']))
+lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['label_num'], period_dic['period_lbl']['period_code']))
 
 # %% add new format data
 
@@ -242,7 +242,8 @@ for key in valueLabels.keys():
 #             f'PG{i}', 
 #             df[(df.index >= i * chunk_size) & (df.index < (i+1) * chunk_size)], 
 #             varNames, varTypes, valueLabels, varLabels, formats, dir='sav_conv')
-    
+
+print(df.head())    
 for c in df['category'].unique():
     df_tmp = df[df['category'] == c].copy()
     df_tmp.index = list(range(df_tmp.shape[0]))
@@ -257,3 +258,4 @@ for c in df['category'].unique():
                 varNames, varTypes, valueLabels, 
                 varLabels, formats, dir='sav_conv') 
 
+df.to_excel('kak_zhe_klevo_debazhit_v_etom_govne.xlsx')
