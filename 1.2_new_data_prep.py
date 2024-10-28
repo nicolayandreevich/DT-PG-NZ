@@ -13,6 +13,7 @@ year = pd.read_excel(r'.\codes\periods.xlsx', sheet_name ='year')
 segments_order = pd.read_excel(r'.\codes\segments_order.xlsx')
 example = pd.read_excel(r'.\codes\Example.xlsx', sheet_name = 'example')
 legends = pd.read_excel(r'.\codes\Example.xlsx', sheet_name = 'legends')
+shop_order = pd.read_excel(r'.\codes\shop_order.xlsx')
 
 fin_cols = example.columns
 
@@ -94,6 +95,12 @@ def get_df_in_v2(df_in, category, fin_cols, columns_dict):
     
     print('merged shape', df_in.shape)
     
+    
+    # shop
+    df_in = df_in.merge(
+        shop_order, on=['position_name_shop'], how='left', validate='many_to_one')
+    
+    
     # rename metrics
     df_in.columns = [col.lower().replace(' ','_') for col in df_in.columns]
     df_in = df_in.rename(columns_dict, axis=1)
@@ -147,6 +154,10 @@ if len(new_periods):
     # TODO: save to excel in codes dir
     
 # TODO: check for retailers in categories
+
+
+
+
 # TODO: save to excel in codes dir
 # TODO: create excel with shops / hierarchy and common codes for all cats
 

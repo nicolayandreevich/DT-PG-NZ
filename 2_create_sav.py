@@ -9,9 +9,9 @@ files = [
     'PG_Flatfiles_BRMALE',
     'PG_Flatfiles_Shampoo',
     'PG_Flatfiles_Feminine_Care',
-    'PG_Flatfiles_Hair_Conditioners',
-    'PG_Flatfiles_Laundry_Detergents',
-]
+    'PG_Flatfiles_Hair_Conditioners']
+    #'PG_Flatfiles_Laundry_Detergents',
+
 
 # %% load old format data
 dfs = []
@@ -179,7 +179,7 @@ df['time_period_type'] = df['time_period_type'].map(dic_inv(lbl_dic['time_period
 print('period types w/o label: ', df['time_period_type'].isna().sum())
 
 # lbl_dic['period_lbl'] = {k: v for k, v in enumerate(sorted(df['period_lbl'].unique().tolist()), 1)}
-lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_code'], period_dic['period_lbl']['label_num']))
+lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_lbl'], period_dic['period_lbl']['label_num']))
 df['period_lbl'] = df['period_lbl'].map(dic_inv(lbl_dic['period_lbl']))
 # for k, v in lbl_dic['period_lbl'].items():
 #     spl =  v.split(' ')
@@ -272,3 +272,4 @@ for c in df_union['category'].unique():
                 varNames, varTypes, valueLabels, 
                 varLabels, formats, dir='sav_conv') 
 
+df.to_excel('kak_zhe_klevo_debazhit_v_etom_govne.xlsx')
