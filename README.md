@@ -1,8 +1,11 @@
 # pg_dt_portal
 
-## Project dir stucture
+## Project dir stucture (need to be created)
 - cat_trees
+- codes
 - data
+    - new_data_merged
+    - out-for-datatile
 - exports
 - sav_conv
 
