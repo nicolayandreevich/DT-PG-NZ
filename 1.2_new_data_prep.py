@@ -15,7 +15,7 @@ example = pd.read_excel(r'.\codes\Example.xlsx', sheet_name = 'example')
 legends = pd.read_excel(r'.\codes\Example.xlsx', sheet_name = 'legends')
 shop_order = pd.read_excel(r'.\codes\shop_order.xlsx')
 
-fin_cols = example.columns
+fin_cols = example.columns.to_list() + ['shop_code', 'shop_lvls']
 
 cat_dict = {
     'br':'MALE B&R', 'deterg': 'Laundry Detergents',
@@ -92,14 +92,12 @@ def get_df_in_v2(df_in, category, fin_cols, columns_dict):
     df_in = df_in.merge(
         segments_order, on=['Segment'], how='left', validate='many_to_one')
     df_in = df_in.rename(columns={'segment_code': 'cat_segment'})
-    
-    print('merged shape', df_in.shape)
-    
-    
+
     # shop
     df_in = df_in.merge(
         shop_order, on=['position_name_shop'], how='left', validate='many_to_one')
     
+    print('merged shape', df_in.shape)
     
     # rename metrics
     df_in.columns = [col.lower().replace(' ','_') for col in df_in.columns]
@@ -111,15 +109,14 @@ def get_df_in_v2(df_in, category, fin_cols, columns_dict):
         print('WARNING\n', 'columns with na:')
         print(chk_na[chk_na > 0])
         
-    # transform from 000
-    # TODO: add usd when avaliable
-    cols_to_transform = [
-        'buying_households', 
-        'occasions', 
-        'volume_physical_units',
-        'volume_su',
-        'spend_local_currency']
-    df_in[cols_to_transform] = df_in[cols_to_transform] * 1000
+    # # transform from 000
+    # cols_to_transform = [
+    #     'buying_households', 
+    #     'occasions', 
+    #     'volume_physical_units',
+    #     'volume_su',
+    #     'spend_local_currency']
+    # df_in[cols_to_transform] = df_in[cols_to_transform] * 1000
     
     return df_in
 
@@ -131,10 +128,10 @@ def get_df_in_v2(df_in, category, fin_cols, columns_dict):
 path = './data/out-for-datatile'
 # files = os.listdir(path)
 
-# only total
-files = list(Path(path).glob('*_tot.parquet'))
-# # with shops
-# files = list(Path(path).glob('*_allshops.parquet'))
+# # only total
+# files = list(Path(path).glob('*_tot.parquet'))
+# with shops
+files = list(Path(path).glob('*_allshops.parquet'))
 
 # data check
 dfs = []
@@ -152,14 +149,6 @@ if len(new_periods):
     print('new periods:')
     print(df_check.loc[df_check['period_code'].isna(), 'period_lbl'].unique())
     # TODO: save to excel in codes dir
-    
-# TODO: check for retailers in categories
-
-
-
-
-# TODO: save to excel in codes dir
-# TODO: create excel with shops / hierarchy and common codes for all cats
 
 duplicates_n = df_check.loc[df_check.duplicated()].shape[0]
 if duplicates_n:
@@ -171,6 +160,9 @@ for f in files:
     
     category = cat_dict[f.name.split('_')[0]]
     df_in = pd.read_parquet(f)
+    
+    df_in['position_name_shop'] = df_in['position_name_shop'].replace(
+        {'Ok Hyper': 'OK Hyper', 'Perekryostok': 'Perekrestok'})
     
     df_in = add_period_lbls(df_in)
     

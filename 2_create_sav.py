@@ -27,6 +27,7 @@ del df_tmp, dfs
 product_order = pd.read_excel('codes/feature_groups.xlsx')
 demo_order = pd.read_excel('codes/demo_order.xlsx')
 segment_order = pd.read_excel('codes/segments_order.xlsx')
+shop_order = pd.read_excel('codes/shop_order.xlsx')
 
 def dic_inv(dic):
     return {v: k for k, v in dic.items()}
@@ -58,6 +59,9 @@ lbl_dic['product_lvls'] = {k: str(k) for k in df['product_lvls'].unique()}
 
 df['demo_lvls']= df['demo_lvls'].astype(int)
 lbl_dic['demo_lvls'] = {k: str(k) for k in df['demo_lvls'].unique()}
+
+lbl_dic['shop_code'] = dict(zip(shop_order['shop_code'], shop_order['position_name_shop']))
+lbl_dic['shop_lvls'] = dict(zip(shop_order['shop_lvls'], shop_order['shop_lvls'].astype(str)))
 
 # %% recode and add order to levels
 
@@ -150,11 +154,11 @@ metrics = {
     'Average per SU local currency': 'Average Price per SU (RUB)',
     # 'Average per SU EUR': 'Average Price L/kg/SU/EUR',
     'Average per SU USD': 'Average Price per SU USD',
-    'Volume SU': 'Volume SU',
-    'Volume Physical Units': 'Volume Packs',
-    'Spend Local Currency': 'Value RUB',
+    'Volume SU': 'Volume SU (000)',
+    'Volume Physical Units': 'Volume Packs (000)',
+    'Spend Local Currency': 'Value RUB (000)',
     # 'Spend EUR': 'Value EUR',
-    'Spend USD': 'Value USD',    
+    'Spend USD': 'Value USD (000)',    
 }
 
 metrics_dic = {
@@ -162,6 +166,17 @@ metrics_dic = {
 }
 
 df.columns = [k.lower().replace(' ', '_').replace('+', '_') for k in df.columns]
+
+# %% convert to 000
+cols_to_transform = [
+    'buying_households', 
+    'occasions', 
+    'volume_physical_units',
+    'volume_su',
+    'spend_local_currency',
+    'spend_usd'
+]
+df[cols_to_transform] = df[cols_to_transform] / 1000
 
 # %% encode periods
 period_dic = pd.read_excel('codes/periods.xlsx', sheet_name=None)
@@ -179,7 +194,7 @@ df['time_period_type'] = df['time_period_type'].map(dic_inv(lbl_dic['time_period
 print('period types w/o label: ', df['time_period_type'].isna().sum())
 
 # lbl_dic['period_lbl'] = {k: v for k, v in enumerate(sorted(df['period_lbl'].unique().tolist()), 1)}
-lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_lbl'], period_dic['period_lbl']['label_num']))
+lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_code'], period_dic['period_lbl']['label_num']))
 df['period_lbl'] = df['period_lbl'].map(dic_inv(lbl_dic['period_lbl']))
 # for k, v in lbl_dic['period_lbl'].items():
 #     spl =  v.split(' ')
@@ -195,6 +210,10 @@ print('periods w/o label: ', df['period_lbl'].isna().sum())
 
 # upload new data
 df_new = pd.read_parquet('data/new_data_merged/new_data.pq')
+
+# add shops to old data
+df['shop_code'] = 1 # RUSSIA NATIONAL
+df['shop_lvls'] = 1
 
 # replace incorrect su
 incorrect_su_old = [
@@ -217,6 +236,7 @@ df_union = df_union.drop_duplicates(
 
 # %% value / buyers shares for socdem
 cols = ['product_lvls', 'category',
+        'shop_code', 'shop_lvls',
         'time_period_type', 'year', 'period_lbl',
         'product_hier', 'products', 
         'features', 'cat_segment',
@@ -270,6 +290,4 @@ for c in df_union['category'].unique():
                     & (df_tmp.index < (i+1) * chunk_size)
                 ],
                 varNames, varTypes, valueLabels, 
-                varLabels, formats, dir='sav_conv') 
-
-df.to_excel('kak_zhe_klevo_debazhit_v_etom_govne.xlsx')
+                varLabels, formats, dir='exports') 
