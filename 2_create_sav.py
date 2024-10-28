@@ -168,11 +168,13 @@ period_dic = pd.read_excel('codes/periods.xlsx', sheet_name=None)
 
 df['year'] = df['year'].astype(int)
 # lbl_dic['year'] = {k: str(k) for k in df['year'].unique()}
-lbl_dic['year'] = dict(zip(period_dic['year']['year'], period_dic['year']['year_code']))
+lbl_dic['year'] = dict(zip(period_dic['year']['year_code'], period_dic['year']['year']))
 # lbl_dic['time_period_type'] = {1: '3MMT/ 12we', 2:'MAT/ 52 we', 3: '2MAT/ 104 we', 4: 'Monthly'}
 lbl_dic['time_period_type'] = dict(zip(
     period_dic['time_period_type']['time_period_code'], 
     period_dic['time_period_type']['time_period_type']))
+df['time_period_type'] = df['time_period_type'].replace(
+    {'Monthly': 'Month', '2MAT/ 104 we': '2MATs/ 104 we'})
 df['time_period_type'] = df['time_period_type'].map(dic_inv(lbl_dic['time_period_type']))
 print('period types w/o label: ', df['time_period_type'].isna().sum())
 
@@ -182,38 +184,64 @@ df['period_lbl'] = df['period_lbl'].map(dic_inv(lbl_dic['period_lbl']))
 # for k, v in lbl_dic['period_lbl'].items():
 #     spl =  v.split(' ')
 #     lbl_dic['period_lbl'][k] = spl[0] + ' ' + spl[3] + ' ' + spl[1]
-lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['label_num'], period_dic['period_lbl']['period_code']))
+lbl_dic['period_lbl'] = dict(zip(period_dic['period_lbl']['period_code'], period_dic['period_lbl']['period_lbl']))
+print('periods w/o label: ', df['period_lbl'].isna().sum())
+
+# %% get currency rates
+# df['rate'] = (df['spend_local_currency'] / df['spend_usd']).round(2)
+# rates = df[['period_lbl', 'rate']].drop_duplicates().set_index('period_lbl').to_dict()['rate']
 
 # %% add new format data
 
-# TODO
+# upload new data
+df_new = pd.read_parquet('data/new_data_merged/new_data.pq')
+
+# replace incorrect su
+incorrect_su_old = [
+    'average_per_su_local_currency',
+    'average_per_su_usd',
+    'purchase_size_su',
+    'volume_su'
+]
+df[incorrect_su_old] = float('nan')
+cols = df.columns
+df = df.drop(columns=[i for i in incorrect_su_old if i in df_new.columns])
+df = df.merge(
+    df_new[[i for i in df_new.columns if (i not in metrics_dic.keys()) or (i in incorrect_su_old)]].drop_duplicates(), 
+    how='left', validate='one_to_many')
+
+# concat, keep first data
+df_union = pd.concat([df, df_new], ignore_index=True)
+df_union = df_union.drop_duplicates(
+    subset=[i for i in df_union.columns if i not in metrics_dic.keys()], keep='first')
 
 # %% value / buyers shares for socdem
 cols = ['product_lvls', 'category',
         'time_period_type', 'year', 'period_lbl',
         'product_hier', 'products', 
         'features', 'cat_segment',
-        'spend_usd', 'buying_households'
+        'spend_local_currency', 'buying_households'
         ]
-totals = df.loc[df['demo_groups'] == 1, cols].rename(
-    columns={'spend_usd': 'total_spend_usd', 'buying_households': 'total_buying_households'})
+totals = df_union.loc[df_union['demo_groups'] == 1, cols].rename(
+    columns={'spend_local_currency': 'total_spend_local_currency', 
+             'buying_households': 'total_buying_households'})
 totals = totals.drop_duplicates()
 
-df = df.merge(totals, how='left', validate='many_to_one')
+df_union = df_union.merge(totals, how='left', validate='many_to_one')
 
-df['value_share'] = df['spend_usd'] / df['total_spend_usd'] * 100
-df['buyers_share'] = df['buying_households'] / df['total_buying_households'] * 100
+df_union['value_share'] = df_union['spend_local_currency'] / df_union['total_spend_local_currency'] * 100
+df_union['buyers_share'] = df_union['buying_households'] / df_union['total_buying_households'] * 100
 
 metrics_dic.update({
     'value_share': 'Value share, % of Total Demography',
     'buyers_share': 'Buyers share, % of Total Demography'
     })
 
-df = df.drop(columns=['total_spend_usd', 'total_buying_households'])
+df_union = df_union.drop(columns=['total_spend_local_currency', 'total_buying_households'])
 del totals
 
 # %% prepare sav file # SavReaderWriter
-varNames = [i.lower().encode() for i in df.columns]        
+varNames = [i.lower().encode() for i in df_union.columns]        
 varTypes = dict.fromkeys(varNames, 0)
 formats = {c.encode(): b'F8.5' for c in metrics_dic.keys()}
 
@@ -230,22 +258,8 @@ valueLabels = {
 for key in valueLabels.keys():
     valueLabels[key] = {k: str(i).encode() for k, i in valueLabels[key].items()}    
 
-# for i in df['level_0'].unique():
-#     dp_utils.save_convert(
-#             f'PG{i}', df[df['level_0'] == i], 
-#             varNames, varTypes, valueLabels, 
-#             varLabels, formats, dir='sav_conv') 
-
-# df.index = list(range(df.shape[0]))
-# for i in range(df.shape[0] // chunk_size + 1):
-#     dp_utils.save_convert(
-#             f'PG{i}', 
-#             df[(df.index >= i * chunk_size) & (df.index < (i+1) * chunk_size)], 
-#             varNames, varTypes, valueLabels, varLabels, formats, dir='sav_conv')
-
-print(df.head())    
-for c in df['category'].unique():
-    df_tmp = df[df['category'] == c].copy()
+for c in df_union['category'].unique():
+    df_tmp = df_union[df_union['category'] == c].copy()
     df_tmp.index = list(range(df_tmp.shape[0]))
     for i in range(df_tmp.shape[0] // chunk_size + 1):
         dp_utils.save_convert(
