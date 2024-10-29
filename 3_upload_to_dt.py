@@ -3,7 +3,7 @@ from pathlib import Path
 import time
 
 # %% function
-def reload_data(files: list[Path], hash_db: str, token: str, wait: int = 15):
+def reload_data(files: list[Path], hash_db: str, token: str, wait: int = 15 ):
     """
     Reloads existing database with list of files.
     
@@ -42,7 +42,14 @@ def reload_data(files: list[Path], hash_db: str, token: str, wait: int = 15):
     # append other bases
     if not (200 <= res.status_code < 300):
         raise ValueError(f"RESPONSE: {res.status_code}, {res.text}")
+    
+    elif (400 <= res.status_code < 500):
+        time.sleep(wait)
+        res = post(url,
+                headers={"token": token},
+                files={'dataset': open(files[0] ,'rb')})
         
+    
     else:
         print(f"RESPONSE: {res.status_code}, {res.text}")
         time.sleep(wait)
@@ -58,6 +65,23 @@ def reload_data(files: list[Path], hash_db: str, token: str, wait: int = 15):
             if 200 <= res.status_code < 300:
                 print(f"RESPONSE: {res.status_code}, {res.text}")
                 time.sleep(wait)
+
+            
+            
+            elif (400 <= res.status_code < 500):
+                print(ValueError(f"RESPONSE: {res.status_code}, {res.text}"))
+                print('will_try_again')
+                time.sleep(wait)
+                time.sleep(wait)
+                print('try_again')
+                print(f)
+                res = post(url,
+                            headers={"token": token},
+                            files={'dataset': open(f,'rb')})
+
+                    
+                
+                
             else:
                 raise ValueError(f"RESPONSE: {res.status_code}, {res.text}")
 
@@ -65,8 +89,8 @@ def reload_data(files: list[Path], hash_db: str, token: str, wait: int = 15):
 with open('../token', 'r') as t:
     token = t.read()
     
-files = list(Path('sav_conv/').glob('*.zip'))
+files = list(Path('exports/').glob('*.zip'))
 hash_db = "ce51522a-44d2-476b-a305-68e812555a37"
 
-reload_data(files, hash_db, token)
+reload_data(files, hash_db, token )
 
