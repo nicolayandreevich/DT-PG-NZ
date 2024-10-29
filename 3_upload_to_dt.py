@@ -3,7 +3,7 @@ from pathlib import Path
 import time
 
 # %% function
-def reload_data(files: list[Path], hash_db: str, token: str, wait: int = 15 ):
+def upload_data(files: list[Path], hash_db: str, token: str, wait: int = 15, mode: str = 'reload'):
     """
     Reloads existing database with list of files.
     
@@ -17,6 +17,8 @@ def reload_data(files: list[Path], hash_db: str, token: str, wait: int = 15 ):
         DT token.
     wait : int, optional
         Seconds to wait for data processing on the server. Bigger files require more time. The default is 15.
+    mode : str, optional
+        Action mode for upload. Put "reload" to replace existing data, put "append" for appending to existing data. The default is "reload".
 
     Raises
     ------
@@ -29,61 +31,44 @@ def reload_data(files: list[Path], hash_db: str, token: str, wait: int = 15 ):
 
     """
     
-    
-    # reload first base
-    action = "reload"
-    url = f"https://dataview.aya-research.ru/api/v2/upload/{action}/{hash_db}"
-    
-    print(files[0])
-    res = post(url,
-            headers={"token": token},
-            files={'dataset': open(files[0] ,'rb')})
-    
-    # append other bases
-    if not (200 <= res.status_code < 300):
-        raise ValueError(f"RESPONSE: {res.status_code}, {res.text}")
-    
-    elif (400 <= res.status_code < 500):
-        time.sleep(wait)
+    def post_wait(file, action):
+        print(file, action)
+        url = f"https://dataview.aya-research.ru/api/v2/upload/{action}/{hash_db}"
+        
         res = post(url,
                 headers={"token": token},
-                files={'dataset': open(files[0] ,'rb')})
+                files={'dataset': open(file, 'rb')})  
         
-    
-    else:
-        print(f"RESPONSE: {res.status_code}, {res.text}")
-        time.sleep(wait)
-        
-        for f in files[1:]:
-            print(f)
-            action = "append"
-            url = f"https://dataview.aya-research.ru/api/v2/upload/{action}/{hash_db}"
-            res = post(url,
-                    headers={"token": token},
-                    files={'dataset': open(f ,'rb')})
-            
-            if 200 <= res.status_code < 300:
+        if not (200 <= res.status_code < 300):
+            if (400 <= res.status_code < 500):
                 print(f"RESPONSE: {res.status_code}, {res.text}")
+                print('trying again')
                 time.sleep(wait)
-
-            
-            
-            elif (400 <= res.status_code < 500):
-                print(ValueError(f"RESPONSE: {res.status_code}, {res.text}"))
-                print('will_try_again')
-                time.sleep(wait)
-                time.sleep(wait)
-                print('try_again')
-                print(f)
                 res = post(url,
-                            headers={"token": token},
-                            files={'dataset': open(f,'rb')})
-
-                    
+                        headers={"token": token},
+                        files={'dataset': open(file ,'rb')})
                 
-                
+                if not (200 <= res.status_code < 300):
+                    raise ValueError(f"RESPONSE: {res.status_code}, {res.text}")
             else:
                 raise ValueError(f"RESPONSE: {res.status_code}, {res.text}")
+
+        print(f"RESPONSE: {res.status_code}, {res.text}")
+        time.sleep(wait)
+    
+    
+    if mode == 'reload':
+        post_wait(files[0], "reload")
+        for f in files[1:]:
+            post_wait(f, "append")
+            
+    elif mode == 'append':
+        for f in files:
+            post_wait(f, "append")
+    
+    else:
+        raise ValueError(f"{mode} is not supported mode for upload. Must be 'reload' or 'append'")
+        
 
 # %% run reload
 with open('../token', 'r') as t:
@@ -92,5 +77,5 @@ with open('../token', 'r') as t:
 files = list(Path('exports/').glob('*.zip'))
 hash_db = "ce51522a-44d2-476b-a305-68e812555a37"
 
-reload_data(files, hash_db, token )
+upload_data(files, hash_db, token, wait=15, mode='reload')
 

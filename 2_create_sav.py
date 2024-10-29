@@ -10,8 +10,8 @@ files = [
     'PG_Flatfiles_Shampoo',
     'PG_Flatfiles_Feminine_Care',
     'PG_Flatfiles_Hair_Conditioners',
-    'PG_Flatfiles_Laundry_Detergents']
-
+    'PG_Flatfiles_Laundry_Detergents'
+]
 
 # %% load old format data
 dfs = []
