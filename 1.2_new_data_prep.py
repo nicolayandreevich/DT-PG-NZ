@@ -125,13 +125,16 @@ def get_df_in_v2(df_in, category, fin_cols, columns_dict):
 # archive = py7zr.SevenZipFile('../data_in/out-for-datatile.7z', 'r')
 # archive.extractall(path="/tmp")
 
-path = './data/out-for-datatile'
+paths = ['./data/out-for-datatile', './data/out-for-datatile_2q']
+
 # files = os.listdir(path)
 
 # # only total
 # files = list(Path(path).glob('*_tot.parquet'))
 # with shops
-files = list(Path(path).glob('*_allshops.parquet'))
+files = []
+for path in paths:
+    files += list(Path(path).glob('*_allshops.parquet'))
 
 # data check
 dfs = []
