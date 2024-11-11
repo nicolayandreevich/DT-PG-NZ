@@ -73,9 +73,12 @@ def upload_data(files: list[Path], hash_db: str, token: str, wait: int = 15, mod
 # %% run reload
 with open('../token', 'r') as t:
     token = t.read()
-    
-files = list(Path('exports/').glob('*.zip'))
 hash_db = "ce51522a-44d2-476b-a305-68e812555a37"
 
-upload_data(files, hash_db, token, wait=15, mode='reload')
+#Add old data (replace all data in DT)    
+#files = list(Path('exports/').glob('*.zip'))
+#upload_data(files, hash_db, token, wait=15, mode='reload')
 
+#Add new data 
+files = list(Path('exports/new_data/').glob('*.zip'))
+upload_data(files, hash_db, token, wait=15, mode='append')

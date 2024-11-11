@@ -277,9 +277,28 @@ valueLabels = {
     if key.lower().encode() in varNames}
 for key in valueLabels.keys():
     valueLabels[key] = {k: str(i).encode() for k, i in valueLabels[key].items()}    
+#
+#
+#110 -code of old data format (untill Jun 2024) 
 
+# for c in df_union['category'].unique():
+#     df_tmp = df_union[(df_union['category'] == c) &(df_union['period_lbl'] <=110  )].copy() #110 -code of old data format
+#     df_tmp.index = list(range(df_tmp.shape[0]))
+#     for i in range(df_tmp.shape[0] // chunk_size + 1):
+#         dp_utils.save_convert(
+#                 f'PG_cat{c}_chunk{i}', 
+#                 df_tmp[
+#                     (df_tmp['category'] == c) 
+#                     & (df_tmp.index >= i * chunk_size) 
+#                     & (df_tmp.index < (i+1) * chunk_size)
+#                 ],
+#                 varNames, varTypes, valueLabels, 
+#                 varLabels, formats, dir='exports') 
+
+
+#New data after Jun 24
 for c in df_union['category'].unique():
-    df_tmp = df_union[df_union['category'] == c].copy()
+    df_tmp = df_union[(df_union['category'] == c) &(df_union['period_lbl'].between(111,120))].copy() 
     df_tmp.index = list(range(df_tmp.shape[0]))
     for i in range(df_tmp.shape[0] // chunk_size + 1):
         dp_utils.save_convert(
@@ -290,4 +309,6 @@ for c in df_union['category'].unique():
                     & (df_tmp.index < (i+1) * chunk_size)
                 ],
                 varNames, varTypes, valueLabels, 
-                varLabels, formats, dir='exports') 
+                varLabels, formats, dir='exports/new_data') 
+
+# %%
