@@ -43,6 +43,16 @@ def add_period_lbls(df_in):
         .apply(lambda row: get_period_lbl(*row), axis=1)
         
     df_in = df_in.merge(df_tmp_per, how='left')
+    
+   # for lbl in df_tmp_per['period_lbl']:
+   #     if 
+    
+    df_in = df_in.merge(
+            periods, on=['period_lbl'], how='left', validate='many_to_one')
+        df_in = df_in.merge(
+            time_period_type, on=['time_period_type'], how='left', validate='many_to_one')
+        df_in = df_in.drop(columns=['time_period_type', 'period_lbl'])\
+            .rename(columns={'time_period_code': 'time_period_type', 'period_code': 'period_lbl'})
         
     print('time_period_type is null:', sum(df_in['time_period_type'].isnull()))   
 
@@ -77,12 +87,14 @@ def get_df_in_v2(df_in, category, fin_cols, columns_dict):
     df_in['demo_hier'] = df_in['demo_groups']
     
     # periods
-    df_in = df_in.merge(
-        periods, on=['period_lbl'], how='left', validate='many_to_one')
-    df_in = df_in.merge(
-        time_period_type, on=['time_period_type'], how='left', validate='many_to_one')
-    df_in = df_in.drop(columns=['time_period_type', 'period_lbl'])\
-        .rename(columns={'time_period_code': 'time_period_type', 'period_code': 'period_lbl'})
+    print('Check time comments!')
+# should be removed to func add_period_lbls
+#    df_in = df_in.merge(
+#        periods, on=['period_lbl'], how='left', validate='many_to_one')
+#    df_in = df_in.merge(
+#        time_period_type, on=['time_period_type'], how='left', validate='many_to_one')
+#    df_in = df_in.drop(columns=['time_period_type', 'period_lbl'])\
+#        .rename(columns={'time_period_code': 'time_period_type', 'period_code': 'period_lbl'})
     
     # df_in = df_in.merge(
     #     year, on=['year'], how='left', validate='many_to_one')
