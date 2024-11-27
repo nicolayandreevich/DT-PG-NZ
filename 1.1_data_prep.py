@@ -15,7 +15,7 @@ for name in files:
     print(name)
     
     # %% load data
-    df = pl.read_parquet(f"data/{name}.pq.zstd")
+    df = pl.read_parquet(f"data/old_format_data/{name}.pq.zstd")
     df = df.filter(pl.col('Occasions') > 0)
     print(df.shape)
     

@@ -11,6 +11,6 @@ files = [
 ]
 
 for f in tqdm(files):
-    tmp = pd.read_csv(f'./data/{f}.zip', engine='pyarrow', compression='zip')
+    tmp = pd.read_csv(f'./data/old_format_data/{f}.zip', engine='pyarrow', compression='zip')
     # tmp.to_parquet(f'./data/{f}.pq.zstd', compression='zstd', engine='fastparquet')
-    tmp.to_parquet(f'./data/{f}.pq.zstd', compression='zstd', engine='pyarrow')
+    tmp.to_parquet(f'./data/old_format_data/{f}.pq.zstd', compression='zstd', engine='pyarrow')

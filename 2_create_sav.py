@@ -1,9 +1,10 @@
+#%%
 import pandas as pd
 from tqdm import tqdm
 from RM_tools import dp_utils
 
 chunk_size = 1_000_000
-
+#%%
 files = [
     'PG_Flatfiles_Diapers',
     'PG_Flatfiles_BRMALE',
@@ -210,7 +211,11 @@ print('periods w/o label: ', df['period_lbl'].isna().sum())
 
 # upload new data
 df_new = pd.read_parquet('data/new_data_merged/new_data.pq')
-
+try:
+  df['shop_code'] = 1 # RUSSIA NATIONAL
+  df['shop_lvls'] = 1
+except NameError:
+    df = pd.DataFrame(columns= df_new.columns) 
 # add shops to old data
 df['shop_code'] = 1 # RUSSIA NATIONAL
 df['shop_lvls'] = 1
@@ -230,6 +235,7 @@ df = df.merge(
     how='left', validate='one_to_many')
 
 # concat, keep first data
+   
 df_union = pd.concat([df, df_new], ignore_index=True)
 df_union = df_union.drop_duplicates(
     subset=[i for i in df_union.columns if i not in metrics_dic.keys()], keep='first')
@@ -297,18 +303,65 @@ for key in valueLabels.keys():
 
 
 #New data after Jun 24
-for c in df_union['category'].unique():
-    df_tmp = df_union[(df_union['category'] == c) &(df_union['period_lbl'].between(111,120))].copy() 
-    df_tmp.index = list(range(df_tmp.shape[0]))
-    for i in range(df_tmp.shape[0] // chunk_size + 1):
-        dp_utils.save_convert(
-                f'PG_cat{c}_chunk{i}', 
-                df_tmp[
-                    (df_tmp['category'] == c) 
-                    & (df_tmp.index >= i * chunk_size) 
+# last_period_batch = period_dic['period_lbl']['period_batch'].max()
+# last_period_code = list(period_dic['period_lbl'][period_dic['period_lbl']['period_batch'] == last_period_batch ]['period_code'].values)
+
+# for c in df_union['category'].unique():
+#     df_tmp = df_union[(df_union['category'] == c) &(df_union['period_lbl'].isin(last_period_code))].copy() 
+#     df_tmp.index = list(range(df_tmp.shape[0]))
+#     for i in range(df_tmp.shape[0] // chunk_size + 1):
+#         dp_utils.save_convert(
+#                 f'PG_cat{c}_chunk{i}', 
+#                 df_tmp[
+#                     (df_tmp['category'] == c) 
+#                     & (df_tmp.index >= i * chunk_size) 
+#                     & (df_tmp.index < (i+1) * chunk_size)
+#                 ],
+#                 varNames, varTypes, valueLabels, 
+#                 varLabels, formats, dir='exports/new_data') 
+
+# %%
+try:
+    last_period_batch = period_dic['period_lbl']['period_batch'].max()
+except NameError:
+    period_dic = pd.read_excel('codes/periods.xlsx', sheet_name=None)
+
+
+
+def convert_data_to_sav(df_in, 
+                        dir='exports/new_data',
+                        chunk_size = 1_000_000, 
+                        only_new=True ):
+    global varNames, varTypes,valueLabels,varLabels,formats, period_dic
+    last_period_batch = period_dic['period_lbl']['period_batch'].max()
+    period_batch = ''
+    if only_new == True:
+        last_period_code = list(period_dic['period_lbl'][period_dic['period_lbl']['period_batch'] == last_period_batch ]['period_code'].values)
+        period_batch = f'and period_lbl in ({last_period_code}) '.replace('[','').replace(']','')  
+    
+    for c in tqdm(df_in['category'].unique()):
+        qu =f"""category == {c} {period_batch}"""
+        #print(qu)
+        df_tmp = df_in.query(qu).copy() 
+        df_tmp.reset_index(drop=True)
+        print(df_tmp.shape)
+        for i in range(df_tmp.shape[0] // chunk_size + 1):
+            name_of_file = f'PG_cat{c}_chunk{i}' + f"{ f'period_batch_{last_period_batch}' if only_new==True  else ''}"
+            print(name_of_file)
+            dp_utils.save_convert( 
+            f'PG_cat{c}_chunk{i}' + f"{ f'period_batch_{last_period_batch}' if only_new==True  else ''}",
+                df_tmp[(df_tmp.index >= i * chunk_size) 
                     & (df_tmp.index < (i+1) * chunk_size)
                 ],
                 varNames, varTypes, valueLabels, 
-                varLabels, formats, dir='exports/new_data') 
+                varLabels, formats, dir=dir) 
+
+#Выдаёт ошибку 
+
+convert_data_to_sav(df_union)
+    
+            
+
+
 
 # %%
