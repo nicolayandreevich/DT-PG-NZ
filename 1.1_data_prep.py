@@ -461,7 +461,7 @@ for name in files:
     # Path(f'exports/{name}.csv').unlink()
     
     df_join2.write_parquet(
-        f'exports/{name}.pq.zstd', compression='zstd', compression_level=12)
+        f'data/tmp/{name}.pq.zstd', compression='zstd', compression_level=12)
     
 
 

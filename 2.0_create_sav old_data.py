@@ -1,9 +1,11 @@
+#%%
 import pandas as pd
 from tqdm import tqdm
 from RM_tools import dp_utils
+import pickle
 
 chunk_size = 1_000_000
-
+#%%
 files = [
     'PG_Flatfiles_Diapers',
     'PG_Flatfiles_BRMALE',
@@ -14,15 +16,17 @@ files = [
 ]
 
 # %% load old format data
-dfs = []
+
+dfs = list()
+
 for f in tqdm(files):
-    # df_tmp = pd.read_csv(f'exports/{f}.zip', engine='pyarrow')
     df_tmp = pd.read_parquet(f'data/tmp/{f}.pq.zstd', engine='pyarrow')
     dfs.append(df_tmp)
+    df = pd.concat(dfs)
+    
 
-df = pd.concat(dfs)
-del df_tmp, dfs
 
+del dfs, df_tmp
 # %% add labels
 product_order = pd.read_excel('codes/feature_groups.xlsx')
 demo_order = pd.read_excel('codes/demo_order.xlsx')
@@ -62,6 +66,7 @@ lbl_dic['demo_lvls'] = {k: str(k) for k in df['demo_lvls'].unique()}
 
 lbl_dic['shop_code'] = dict(zip(shop_order['shop_code'], shop_order['position_name_shop']))
 lbl_dic['shop_lvls'] = dict(zip(shop_order['shop_lvls'], shop_order['shop_lvls'].astype(str)))
+lbl_dic['channel_code'] = dict(zip(shop_order['channel_code'], shop_order['channel_type']))
 
 # %% recode and add order to levels
 
@@ -206,14 +211,11 @@ print('periods w/o label: ', df['period_lbl'].isna().sum())
 # df['rate'] = (df['spend_local_currency'] / df['spend_usd']).round(2)
 # rates = df[['period_lbl', 'rate']].drop_duplicates().set_index('period_lbl').to_dict()['rate']
 
-# %% add new format data
-
-# upload new data
-df_new = pd.read_parquet('data/new_data_merged/new_data.pq')
-
 # add shops to old data
 df['shop_code'] = 1 # RUSSIA NATIONAL
 df['shop_lvls'] = 1
+df['channel_code'] = 1 # RUSSIA NATIONAL
+
 
 # replace incorrect su
 incorrect_su_old = [
@@ -223,93 +225,11 @@ incorrect_su_old = [
     'volume_su'
 ]
 df[incorrect_su_old] = float('nan')
-cols = df.columns
-df = df.drop(columns=[i for i in incorrect_su_old if i in df_new.columns])
-df = df.merge(
-    df_new[[i for i in df_new.columns if (i not in metrics_dic.keys()) or (i in incorrect_su_old)]].drop_duplicates(), 
-    how='left', validate='one_to_many')
-
-# concat, keep first data
-df_union = pd.concat([df, df_new], ignore_index=True)
-df_union = df_union.drop_duplicates(
-    subset=[i for i in df_union.columns if i not in metrics_dic.keys()], keep='first')
-
-# %% value / buyers shares for socdem
-cols = ['product_lvls', 'category',
-        'shop_code', 'shop_lvls',
-        'time_period_type', 'year', 'period_lbl',
-        'product_hier', 'products', 
-        'features', 'cat_segment','demo_hier'] 
-cols_to_rename = {'spend_local_currency': 'total_spend_local_currency', 
-             'buying_households': 'total_buying_households'}
-        
-totals = df_union.loc[df_union['demo_groups'] == 1, cols+ [*cols_to_rename.keys()]].rename(
-    columns={'spend_local_currency': 'total_spend_local_currency', 
-             'buying_households': 'total_buying_households'})
-totals = totals.drop_duplicates()
-
-df_union = df_union.merge(totals, how='left',left_on =cols + [*cols_to_rename.keys()], right_on =cols +[*cols_to_rename.values()],  validate='many_to_one')
-
-df_union['value_share'] = df_union['spend_local_currency'] / df_union['total_spend_local_currency'] * 100
-df_union['buyers_share'] = df_union['buying_households'] / df_union['total_buying_households'] * 100
-
-metrics_dic.update({
-    'value_share': 'Value share, % of Total Demography',
-    'buyers_share': 'Buyers share, % of Total Demography'
-    })
-
-df_union = df_union.drop(columns=['total_spend_local_currency', 'total_buying_households'])
-del totals
-
-# %% prepare sav file # SavReaderWriter
-varNames = [i.lower().encode() for i in df_union.columns]        
-varTypes = dict.fromkeys(varNames, 0)
-formats = {c.encode(): b'F8.5' for c in metrics_dic.keys()}
-
-varLabels = {}
-cols = {key.encode(): val.encode() for key, val in metrics_dic.items()}
-varLabels = {
-    key: cols[key]
-    if key in cols.keys() else key for key in varNames}
-
-valueLabels = {
-    key.lower().encode(): val 
-    for key, val in lbl_dic.items() 
-    if key.lower().encode() in varNames}
-for key in valueLabels.keys():
-    valueLabels[key] = {k: str(i).encode() for k, i in valueLabels[key].items()}    
-#
-#
-#110 -code of old data format (untill Jun 2024) 
-
-# for c in df_union['category'].unique():
-#     df_tmp = df_union[(df_union['category'] == c) &(df_union['period_lbl'] <=110  )].copy() #110 -code of old data format
-#     df_tmp.index = list(range(df_tmp.shape[0]))
-#     for i in range(df_tmp.shape[0] // chunk_size + 1):
-#         dp_utils.save_convert(
-#                 f'PG_cat{c}_chunk{i}', 
-#                 df_tmp[
-#                     (df_tmp['category'] == c) 
-#                     & (df_tmp.index >= i * chunk_size) 
-#                     & (df_tmp.index < (i+1) * chunk_size)
-#                 ],
-#                 varNames, varTypes, valueLabels, 
-#                 varLabels, formats, dir='exports') 
 
 
-#New data after Jun 24
-for c in df_union['category'].unique():
-    df_tmp = df_union[(df_union['category'] == c)].copy() 
-    df_tmp.index = list(range(df_tmp.shape[0]))
-    for i in range(df_tmp.shape[0] // chunk_size + 1):
-        dp_utils.save_convert(
-                f'PG_cat{c}_chunk{i}', 
-                df_tmp[
-                    (df_tmp['category'] == c) 
-                    & (df_tmp.index >= i * chunk_size) 
-                    & (df_tmp.index < (i+1) * chunk_size)
-                ],
-                varNames, varTypes, valueLabels, 
-                varLabels, formats, dir='exports/') 
 
-# %%
+
+with open('data/tmp/old_data.pickle', 'wb') as f:
+    pickle.dump(df, f)
+f.close()
+print('Данные старого формата подготовлены')
