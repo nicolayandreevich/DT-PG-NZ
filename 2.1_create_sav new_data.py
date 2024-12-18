@@ -43,6 +43,8 @@ df_new = pd.read_parquet('data/new_data_merged/new_data.pq')
 
 df_union = pd.concat([old_data, df_new], ignore_index=True)
 
+df_union = df_union.drop_duplicates(subset=[])# Подумать над дропом дуликатов новых и старых данных
+
 
 
 # %% value / buyers shares for socdem
@@ -182,8 +184,13 @@ for col  in tqdm([key for key in lbl_dic if key in df_union.columns]):
 if len(values_no_code):
     print("Колонок с пропусками кодов", len(values_no_code))
     with open('data/tmp/bad_codes.pickle', 'wb') as f:
-        pickle.dump(values_no_code, f)         
+        pickle.dump(values_no_code, f)   
 
+
+#%% meta_information
+               
+meta_information = df_union[['category','period_lbl', 'demo_groups','shop_code']].drop_duplicates()
+meta_information = meta_information.sort_values(by = ['category','period_lbl', 'demo_groups','shop_code']).reset_index(drop=True)
 
 
 # %% prepare sav file # SavReaderWriter

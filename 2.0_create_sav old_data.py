@@ -21,6 +21,7 @@ dfs = list()
 
 for f in tqdm(files):
     df_tmp = pd.read_parquet(f'data/tmp/{f}.pq.zstd', engine='pyarrow')
+    df_tmp['file'] = f
     dfs.append(df_tmp)
     df = pd.concat(dfs)
     
