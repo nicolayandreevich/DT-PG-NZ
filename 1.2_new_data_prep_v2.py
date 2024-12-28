@@ -18,23 +18,36 @@ example = pd.read_excel(r'.\codes\Example.xlsx', sheet_name = 'example')
 legends = pd.read_excel(r'.\codes\Example.xlsx', sheet_name = 'legends')
 shop_order = pd.read_excel(r'.\codes\shop_order.xlsx')
 
+
+#get_low!
+list_of_dict = [features_group,demo_order, periods,time_period_type,year,\
+                 segments_order,example,legends,shop_order]
+for d in list_of_dict:
+    d.columns = [c.lower() for c in d.columns ]
+
 fin_cols = example.columns.to_list() + ['shop_code', 'shop_lvls','channel_code', 'file']
 
 
-
-
 def get_category(name_of_file):
-    cat_dict = {
-    'br':'MALE B&R', 'deterg': 'Laundry Detergents',
-    'diapers': 'Diapers','femcare': 'Feminine Care', 
-    'haircond': 'Hair Conditioners', 'shampoo':'Shampoos'}
+    cat_dict = {'br': 'MALE B&R',
+ 'deterg': 'Laundry Detergents',
+ 'diapers': 'Diapers',
+ 'femcare': 'Feminine Care',
+ 'haircond': 'Hair Conditioners',
+ 'shampoo': 'Shampoos',
+ 'MALE B&R': 'MALE B&R',
+ 'Laundry Detergents': 'Laundry Detergents',
+ 'Diapers': 'Diapers',
+ 'Feminine Care': 'Feminine Care',
+ 'Hair Conditioners': 'Hair Conditioners',
+ 'Shampoos': 'Shampoos'}
     for k in cat_dict.keys():
         if name_of_file.count(k):
             return cat_dict[k]
     else:
         raise ValueError('В названии файла нет категории', name_of_file)    
 
-columns_dict = legends[['mask','Colum']].dropna(subset='mask').set_index('mask').to_dict()['Colum']
+columns_dict = legends[['mask','Colum'.lower()]].dropna(subset='mask').set_index('mask').to_dict()['Colum'.lower()]
 
 # %% make_functions
 
@@ -97,28 +110,30 @@ def add_period_lbls(df_in, periods,time_period_type):
 
 def get_df_in_v2(df_in, category,  fin_cols, columns_dict):
     
+    #get_low_2!
+    df_in.columns = [c.lower() for c in df_in.columns]
 
 
     df_in = df_in.rename(
-        {'Category Name':'Product Name', 'Buyer Group Name':'buyers_gr_label'}, 
+        {'Category Name'.lower():'Product Name'.lower(), 'Buyer Group Name'.lower():'buyers_gr_label'}, 
         axis=1)
-    df_in['Category Name'] = category
+    df_in['Category Name'.lower()] = category
     
     #print('init shape', df_in.shape)
 
 
         
     # products
-    prod_col_to_merge = 'Product Name'
-    if  len(set(df_in['Product Name'].unique()) - set(features_group['Product Name']))>0:
+    prod_col_to_merge = 'Product Name'.lower()
+    if  len(set(df_in['Product Name'.lower()].unique()) - set(features_group['Product Name'.lower()]))>0:
         print('Мерджим по фулл нейму')
         prod_col_to_merge = 'full_label'
 
     
     df_in = df_in.merge(
         features_group,#.drop(columns='Product Name'), 
-        left_on=['Category Name', 'Product Name'], 
-        right_on=['Category Name',  prod_col_to_merge], 
+        left_on=['Category Name'.lower(), 'Product Name'.lower()], 
+        right_on=['Category Name'.lower(),  prod_col_to_merge], 
         how='left') #, validate='many_to_one') Есть множественные ключи в features_group['Product Name']
     
 
@@ -141,20 +156,20 @@ def get_df_in_v2(df_in, category,  fin_cols, columns_dict):
     
     # segments
 
-    if ('Segment' not in df_in.columns):
+    if ('Segment'.lower() not in df_in.columns):
         if (category == 'Feminine Care'):
-            df_in['Segment'] = 'Total Feminine Care'
+            df_in['Segment'.lower()] = 'Total Feminine Care'
         elif (category == 'Shampoos'):
-            df_in['Segment'] = 'Shampoos'
+            df_in['Segment'.lower()] = 'Shampoos'
     
 
     
     if (category == 'Laundry Detergents'):
-        df_in['Segment'] = df_in['Segment'].replace(
+        df_in['Segment'.lower()] = df_in['Segment'.lower()].replace(
             {'Total Detergents excluding Bars': 'Total Detergents excluding Bar'})
-    df_in['Segment'] =df_in['Segment'].replace({'Total Diapers size':'Total Diapers'})
+    df_in['Segment'.lower()] =df_in['Segment'.lower()].replace({'Total Diapers size':'Total Diapers'})
     df_in = df_in.merge(
-        segments_order, on=['Segment'], how='left', validate='many_to_one')
+        segments_order, on=['Segment'.lower()], how='left', validate='many_to_one')
     df_in = df_in.rename(columns={'segment_code': 'cat_segment'})
 
 
@@ -248,6 +263,7 @@ for z in z_files:
         for name in names:
             print(name)
             category = get_category(name)
+            print(category)
             tmp_df = pd.read_parquet(tmp_7z.joinpath(name)) 
             tmp_df = get_df_in_v2(tmp_df, category,  fin_cols, columns_dict)
             tmp_df['file'] = name   
