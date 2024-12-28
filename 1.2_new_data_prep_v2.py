@@ -100,8 +100,12 @@ def add_period_lbls(df_in, periods,time_period_type):
     
     df_in = df_in.merge(
             periods, on='period_lbl', how='left', validate='many_to_one')
+    
+    #df_in['time_period_code'] = df_in['time_period_type'].map(time_period_type_dict)
+    
+    
     df_in = df_in.merge(
-            time_period_type, on=['time_period_type'], how='left', validate='many_to_one')
+           time_period_type, on='time_period_type', how='left', validate='many_to_one')
 
     df_in = df_in.drop(columns=['time_period_type', 'period_lbl', 'month' ])\
             .rename(columns={'time_period_code': 'time_period_type', 'period_code': 'period_lbl'})
@@ -185,7 +189,7 @@ def get_df_in_v2(df_in, category,  fin_cols, columns_dict):
     # rename metrics
     df_in.columns = [col.lower().replace(' ','_') for col in df_in.columns]
     df_in = df_in.rename(columns_dict, axis=1)
-    #df_in = df_in[[i for i in fin_cols + ['duration','month'] if i in df_in.columns]].copy()
+    df_in = df_in[[i for i in fin_cols + ['duration','month'] if i in df_in.columns]]
 
     # chk_na = df_in.isna().sum()
     # if chk_na[chk_na > 0].shape[0] > 0:
@@ -274,6 +278,7 @@ print('Всего файлов', len(dfs))
 # Add periods    
 
 df_check = pd.concat(dfs, ignore_index=True)
+del dfs
 df_check.reset_index(drop=True)
 print('Before periods',df_check.shape)
 df_check = add_period_lbls(df_check, periods,time_period_type)
