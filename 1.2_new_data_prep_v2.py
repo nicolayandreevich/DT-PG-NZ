@@ -4,6 +4,8 @@ import py7zr
 import numpy as np
 from pathlib import Path
 from zipfile import ZipFile
+import datetime
+from tqdm import tqdm
 
 
 # %% load dicts
@@ -17,7 +19,7 @@ segments_order = pd.read_excel(r'.\codes\segments_order.xlsx')
 example = pd.read_excel(r'.\codes\Example.xlsx', sheet_name = 'example')
 legends = pd.read_excel(r'.\codes\Example.xlsx', sheet_name = 'legends')
 shop_order = pd.read_excel(r'.\codes\shop_order.xlsx')
-
+today = datetime.datetime.now().strftime('%Y-%m-%d')
 
 #get_low!
 list_of_dict = [features_group,demo_order, periods,time_period_type,year,\
@@ -83,8 +85,8 @@ def add_period_lbls(df_in, periods,time_period_type):
         print('New periods!')
         print(*new_periods)
         new_periods_df = df_tmp_per[df_tmp_per['period_lbl'].isin(new_periods)].sort_values(by=['year','month'])
-        new_periods_df['period_batch'] = periods['period_batch'].max()+1 if ~np.isnan(periods['period_batch'].max()) else 0
-        periods = pd.concat([periods[['period_lbl','label_num','period_batch' ]], new_periods_df[['period_lbl','label_num','period_batch' ]]],ignore_index=True )
+        new_periods_df['date_added'] = today
+        periods = pd.concat([periods[['period_lbl','label_num','date_added' ]], new_periods_df[['period_lbl','label_num','date_added' ]]],ignore_index=True )
         periods['period_code'] = range(1,len(periods)+1)
         #periods.index = periods['period_code']
         #periods = periods.drop('period_code',axis =1) 
@@ -122,7 +124,9 @@ def get_df_in_v2(df_in, category,  fin_cols, columns_dict):
         {'Category Name'.lower():'Product Name'.lower(), 'Buyer Group Name'.lower():'buyers_gr_label'}, 
         axis=1)
     df_in['Category Name'.lower()] = category
-    
+    df_in = df_in.drop('category',axis=1)
+
+
     #print('init shape', df_in.shape)
 
 
@@ -130,7 +134,7 @@ def get_df_in_v2(df_in, category,  fin_cols, columns_dict):
     # products
     prod_col_to_merge = 'Product Name'.lower()
     if  len(set(df_in['Product Name'.lower()].unique()) - set(features_group['Product Name'.lower()]))>0:
-        print('Мерджим по фулл нейму')
+        #print('Мерджим по фулл нейму')
         prod_col_to_merge = 'full_label'
 
     
@@ -189,7 +193,7 @@ def get_df_in_v2(df_in, category,  fin_cols, columns_dict):
     # rename metrics
     df_in.columns = [col.lower().replace(' ','_') for col in df_in.columns]
     df_in = df_in.rename(columns_dict, axis=1)
-    df_in = df_in[[i for i in fin_cols + ['duration','month'] if i in df_in.columns]]
+    #df_in = df_in[[i for i in fin_cols + ['duration','month'] if i in df_in.columns]]
 
     # chk_na = df_in.isna().sum()
     # if chk_na[chk_na > 0].shape[0] > 0:
@@ -244,18 +248,20 @@ tmp_7z = Path('./data/tmp/7z')
 
 anti_pattern = '_tot.parquet'
 parket = '.parquet'
-dfs = []
+df_check = pd.DataFrame()
 for zip_f in zip_files:
     with ZipFile(zip_f) as zip_file: 
         info = zip_file.namelist() 
         for name in info:
             if (name.count(anti_pattern) == 0) and name.count(parket):
-                print(name)
+                
                 category = get_category(name)
                 tmp_df  = pd.read_parquet(zip_file.extract(name,path=tmp_zip))
                 tmp_df = get_df_in_v2(tmp_df, category,  fin_cols, columns_dict)
+                tmp_df = add_period_lbls(tmp_df,periods,time_period_type)
                 tmp_df['file'] = name                   
-                dfs.append(tmp_df)
+                df_check = pd.concat([df_check,tmp_df ])
+                df_check = df_check.reset_index(drop=True)
  
 
 for z in z_files:
@@ -264,25 +270,21 @@ for z in z_files:
         names = [name for name in info if ( (name.count(anti_pattern) == 0) and name.count(parket))>0 ]
         archive.reset()
         archive.extract(path = tmp_7z, targets=names)
-        for name in names:
-            print(name)
+        progress_bar = tqdm(names)
+        for name in progress_bar:
+            progress_bar.set_postfix({'name_of_file': name})
             category = get_category(name)
-            print(category)
             tmp_df = pd.read_parquet(tmp_7z.joinpath(name)) 
-            tmp_df = get_df_in_v2(tmp_df, category,  fin_cols, columns_dict)
-            tmp_df['file'] = name   
-            dfs.append(tmp_df)
+            #tmp_df = get_df_in_v2(tmp_df, category,  fin_cols, columns_dict)
+            #tmp_df = add_period_lbls(tmp_df,periods,time_period_type)
+            tmp_df['file'] = name 
+            df_check = pd.concat([df_check,tmp_df ])
+            df_check = df_check.reset_index(drop=True)
 
 
-print('Всего файлов', len(dfs))
-# Add periods    
-
-df_check = pd.concat(dfs, ignore_index=True)
-del dfs
-df_check.reset_index(drop=True)
-print('Before periods',df_check.shape)
-df_check = add_period_lbls(df_check, periods,time_period_type)
-print('After periods',df_check.shape)
+print(df_check.shape)
+df_check = get_df_in_v2(df_check, category,  fin_cols, columns_dict)
+df_check = add_period_lbls(df_check,periods,time_period_type)
 
 
 #Chek na
@@ -298,7 +300,7 @@ if chk_na[chk_na > 0].shape[0] > 0:
 
 print('missing cols', [i for i in fin_cols if i not in df_check.columns], '\n')
 #drop not nessesery columns
-df_check = df_check.drop(list(set(df_check.columns) - set(fin_cols)), axis=1)
+#df_check = df_check.drop(list(set(df_check.columns) - set(fin_cols)), axis=1)
 # print(df.columns)
 
 # %% drop duplicates
