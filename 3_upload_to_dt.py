@@ -80,5 +80,5 @@ hash_db = "ce51522a-44d2-476b-a305-68e812555a37"
 #upload_data(files, hash_db, token, wait=45, mode='reload')
 
 #Add new data 
-files = list(Path('exports/new_data/').glob('*.zip'))
-upload_data(files, hash_db, token, wait=45, mode='append')
+files = list(Path('exports/').glob('*.zip'))
+upload_data(files, hash_db, token, wait=45, mode='reload')

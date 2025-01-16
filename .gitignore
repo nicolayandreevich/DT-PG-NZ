@@ -2,8 +2,6 @@
 .spyproject
 __pycache__
 ~$*
-cat_trees/*
-data/*
 exports/*
 sav_conv/*.zip
 !.gitkeep
